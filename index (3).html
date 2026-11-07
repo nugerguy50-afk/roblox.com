@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Legends</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font-family: sans-serif; }
+    #start {
+      position: fixed; inset: 0; z-index: 9999; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; background: #000; color: #fff; cursor: pointer;
+    }
+    #start img { max-width: 70%; max-height: 60vh; object-fit: contain; }
+    #start p { margin-top: 20px; font-size: 22px; letter-spacing: 2px; animation: blink 1s infinite; }
+    @keyframes blink { 50% { opacity: .2; } }
+    #wall { position: fixed; inset: 0; z-index: 1; }
+    .tile { position: absolute; width: 160px; height: auto; user-select: none; }
+    .popup-img { position: fixed; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #000; }
+  </style>
+</head>
+<body>
+
+<div id="start">
+  <img src="Lgends.png" alt="Lgends">
+  <p>CLICK TO ENTER</p>
+</div>
+<div id="wall"></div>
+
+<script>
+  // ================= SETTINGS =================
+  var TARGET_URL = "https://cdn.discordapp.com/attachments/1218596925503438928/1391491832655118438/togif.gif?ex=6af0c4c1&is=6aef7341&hm=9c2cb58372460747583a601688f9245909a63ea863366b61afd9dde46bc12575&";
+  var IMAGE = "Lgends.png";
+  var SOUND = "you_faking_blak.mp3";
+
+  var SOUND_INTERVAL_MS   = 3000;  // play sound every 3 seconds
+  var MULTI_SOUND_CHANCE  = 0.4;   // 40% chance of several overlapping plays
+  var MAX_SOUNDS_AT_ONCE  = 4;     // 2..4 plays when multi triggers
+  var TILE_EVERY_MS       = 250;   // add a new image to the screen this often
+  var MAX_TILES           = 150;   // cap so the page doesn't lag
+  var POPUP_COUNT         = 4;     // extra windows opened showing the image
+  var REDIRECT_AFTER_MS   = 20000; // go to TARGET_URL after this long (0 = never)
+  // ============================================
+
+  var params = new URLSearchParams(location.search);
+
+  // If this is one of the popup windows: just show the image
+  if (params.get("popup") === "1") {
+    document.getElementById("start").remove();
+    document.getElementById("wall").remove();
+    var img = document.createElement("img");
+    img.src = IMAGE;
+    img.className = "popup-img";
+    document.body.appendChild(img);
+    if (REDIRECT_AFTER_MS) setTimeout(function () { location.replace(TARGET_URL); }, 6000);
+  } else {
+    var started = false;
+    document.getElementById("start").addEventListener("click", function () {
+      if (started) return;
+      started = true;
+      this.remove();
+      begin();
+    });
+  }
+
+  function rand(min, max) { return Math.random() * (max - min) + min; }
+
+  function playSound() {
+    var count = Math.random() < MULTI_SOUND_CHANCE ? Math.floor(rand(2, MAX_SOUNDS_AT_ONCE + 1)) : 1;
+    for (var i = 0; i < count; i++) {
+      (function (delay) {
+        setTimeout(function () {
+          var a = new Audio(SOUND);
+          a.play().catch(function () {});
+        }, delay);
+      })(i * rand(80, 400));
+    }
+  }
+
+  function addTile() {
+    var wall = document.getElementById("wall");
+    if (wall.children.length >= MAX_TILES) return;
+    var t = document.createElement("img");
+    t.src = IMAGE;
+    t.className = "tile";
+    t.style.left = rand(-40, window.innerWidth - 120) + "px";
+    t.style.top = rand(-40, window.innerHeight - 120) + "px";
+    t.style.transform = "rotate(" + rand(-25, 25) + "deg) scale(" + rand(0.6, 1.6) + ")";
+    wall.appendChild(t);
+  }
+
+  function openPopups() {
+    for (var i = 0; i < POPUP_COUNT; i++) {
+      var w = Math.floor(rand(280, 480)), h = Math.floor(rand(220, 400));
+      var x = Math.floor(rand(0, Math.max(10, screen.width - w)));
+      var y = Math.floor(rand(0, Math.max(10, screen.height - h)));
+      window.open(
+        location.pathname + "?popup=1", "_blank",
+        "popup=yes,width=" + w + ",height=" + h + ",left=" + x + ",top=" + y
+      );
+    }
+  }
+
+  function begin() {
+    document.body.style.background = "#000";
+    playSound();
+    setInterval(playSound, SOUND_INTERVAL_MS);
+    setInterval(addTile, TILE_EVERY_MS);
+    for (var i = 0; i < 12; i++) addTile();
+    openPopups(); // runs inside the click, so browsers allow it
+    if (REDIRECT_AFTER_MS) setTimeout(function () { location.replace(TARGET_URL); }, REDIRECT_AFTER_MS);
+  }
+</script>
+</body>
+</html>
