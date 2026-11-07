@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>busdiness</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+    * { pointer-events: none; user-select: none; }
+    #center {
+      position: fixed; inset: 0; z-index: 5;
+      display: flex; align-items: center; justify-content: center;
+    }
+    #center img { max-width: 60%; max-height: 80vh; object-fit: contain; }
+    #wall { position: fixed; inset: 0; z-index: 1; }
+    .gif { position: absolute; height: auto; }
+  </style>
+</head>
+<body>
+
+<div id="wall"></div>
+<div id="center"><img id="main" src="busdiness.mean.png" alt=""></div>
+
+<script>
+  // ================= SETTINGS =================
+  var MAIN_IMAGE = "busdiness.mean.png";
+  var GIF = "https://cdn.discordapp.com/attachments/1218596925503438928/1391491832655118438/togif.gif?ex=6af0c4c1&is=6aef7341&hm=9c2cb58372460747583a601688f9245909a63ea863366b61afd9dde46bc12575&";
+  // ^ Discord links expire. For a permanent version, put togif.gif in the repo and use: var GIF = "togif.gif";
+  var SOUND = "you_faking_blak.mp3";
+
+  var SOUND_INTERVAL_MS  = 3000;
+  var MULTI_SOUND_CHANCE = 0.4;
+  var MAX_SOUNDS_AT_ONCE = 4;
+  var GIF_EVERY_MS       = 200;   // new gif added this often
+  var MAX_GIFS           = 120;
+  var POPUP_COUNT        = 6;
+  // ============================================
+
+  function rand(a, b) { return Math.random() * (b - a) + a; }
+  var isPopup = new URLSearchParams(location.search).get("popup") === "1";
+
+  if (isPopup) {
+    // popup windows: same layout (image + gifs around it), no more popups
+    start(false);
+  } else {
+    start(true);
+  }
+
+  function start(master) {
+    for (var i = 0; i < 10; i++) addGif();
+    setInterval(addGif, GIF_EVERY_MS);
+
+    if (!master) return;
+
+    // try everything immediately (browsers may block until first click/tap/key)
+    tryAudio();
+    openPopups();
+
+    var done = false;
+    function first() {
+      if (done) return;
+      done = true;
+      tryAudio();
+      openPopups();
+    }
+    ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+      window.addEventListener("click", first); 
+      window.addEventListener(ev, first, true);
+    });
+  }
+
+  var audioOn = false;
+  function tryAudio() {
+    if (audioOn) return;
+    var t = new Audio(SOUND);
+    t.play().then(function () {
+      t.pause();
+      audioOn = true;
+      playSound();
+      setInterval(playSound, SOUND_INTERVAL_MS);
+    }).catch(function () {});
+  }
+
+  function playSound() {
+    var n = Math.random() < MULTI_SOUND_CHANCE ? Math.floor(rand(2, MAX_SOUNDS_AT_ONCE + 1)) : 1;
+    for (var i = 0; i < n; i++) {
+      setTimeout(function () { new Audio(SOUND).play().catch(function () {}); }, i * rand(80, 400));
+    }
+  }
+
+  function addGif() {
+    var wall = document.getElementById("wall");
+    if (wall.children.length >= MAX_GIFS) return;
+    var g = document.createElement("img");
+    g.src = GIF;
+    g.className = "gif";
+    var w = rand(80, 260);
+    g.style.width = w + "px";
+    g.style.left = rand(-20, window.innerWidth - w + 20) + "px";
+    g.style.top = rand(-20, window.innerHeight - w + 20) + "px";
+    g.style.transform = "rotate(" + rand(-30, 30) + "deg)";
+    wall.appendChild(g);
+  }
+
+  var popped = 0;
+  function openPopups() {
+    if (popped >= POPUP_COUNT) return;
+    for (var i = popped; i < POPUP_COUNT; i++) {
+      var w = Math.floor(rand(300, 520)), h = Math.floor(rand(240, 420));
+      var x = Math.floor(rand(0, Math.max(10, screen.width - w)));
+      var y = Math.floor(rand(0, Math.max(10, screen.height - h)));
+      var win = window.open(location.pathname + "?popup=1", "_blank",
+        "popup=yes,width=" + w + ",height=" + h + ",left=" + x + ",top=" + y);
+      if (win) popped++; else break; // blocked: try again on first click
+    }
+  }
+</script>
+</body>
+</html>
